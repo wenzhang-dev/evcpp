@@ -635,7 +635,7 @@ template <typename It,
           typename ValueType = typename TraitType::ValueType,
           typename ErrorType = typename TraitType::ErrorType,
           typename R = std::conditional_t<std::is_void_v<ValueType>, void,
-                                        std::vector<ValueType>>>
+                                          std::vector<ValueType>>>
 Promise<R, ErrorType> MkAllPromise(It begin, It end, Executor* exec) {
     Promise<R, ErrorType> promise;
 
@@ -695,6 +695,90 @@ Promise<R, ErrorType> MkAllPromise(It begin, It end, Executor* exec) {
 template <typename Cntr>
 auto MkAllPromise(Cntr&& container, Executor* exec) {
     return MkAllPromise(std::begin(container), std::end(container), exec);
+}
+
+template <typename It,
+          typename TraitType = typename std::iterator_traits<It>::value_type,
+          typename ValueType = typename TraitType::ValueType,
+          typename ErrorType = typename TraitType::ErrorType,
+          typename ErrorList = std::vector<ErrorType>>
+Promise<ValueType, ErrorList> MkAnyPromise(It begin, It end, Executor* exec) {
+    Promise<ValueType, ErrorList> promise;
+
+    ASSERT(begin != end);
+
+    struct Ctx {
+        std::size_t failure_counter;
+        ErrorList errors;
+
+        Ctx(std::size_t c) : failure_counter(c), errors(c) {}
+    };
+
+    auto ctx = std::make_shared<Ctx>(std::distance(begin, end));
+    for (auto it = begin, idx = 0; it != end; ++it, ++idx) {
+        it->Then(
+            MakeCallback([ctx, idx, resolver = promise.GetResolver()](
+                             Result<ValueType, ErrorType>&& r) mutable -> void {
+                if (r.IsError()) {
+                    ctx->errors[idx] = std::move(r.Error());
+
+                    if (--ctx->failure_counter == 0) {
+                        resolver.Reject(std::move(ctx->errors));
+                    }
+
+                    return;
+                }
+
+                if constexpr (std::is_void_v<ValueType>) {
+                    resolver.Resolve();
+                } else {
+                    resolver.Resolve(std::move(r.Value()));
+                }
+            }),
+            exec);
+    }
+
+    return promise;
+}
+
+template <typename Cntr>
+auto MkAnyPromise(Cntr&& container, Executor* exec) {
+    return MkAnyPromise(std::begin(container), std::end(container), exec);
+}
+
+template <typename It,
+          typename TraitType = typename std::iterator_traits<It>::value_type,
+          typename ValueType = typename TraitType::ValueType,
+          typename ErrorType = typename TraitType::ErrorType>
+Promise<ValueType, ErrorType> MkRacePromise(It begin, It end, Executor* exec) {
+    Promise<ValueType, ErrorType> promise;
+
+    ASSERT(begin != end);
+
+    for (auto it = begin; it != end; ++it) {
+        it->Then(
+            MakeCallback([resolver = promise.GetResolver()](
+                             Result<ValueType, ErrorType>&& r) mutable -> void {
+                if (r.IsError()) {
+                    resolver.Reject(std::move(r.Error()));
+                    return;
+                }
+
+                if constexpr (std::is_void_v<ValueType>) {
+                    resolver.Resolve();
+                } else {
+                    resolver.Resolve(std::move(r.Value()));
+                }
+            }),
+            exec);
+    }
+
+    return promise;
+}
+
+template <typename Cntr>
+auto MkRacePromise(Cntr&& container, Executor* exec) {
+    return MkRacePromise(std::begin(container), std::end(container), exec);
 }
 
 }  // namespace evcpp

@@ -1,8 +1,19 @@
 #pragma once
 
 #include <chrono>
+#include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <memory>
+
+#define ASSERT(expr)                                                     \
+    do {                                                                 \
+        if (!(expr)) {                                                   \
+            std::cerr << "Assertion failed: " << #expr << ", file "      \
+                      << __FILE__ << ", line " << __LINE__ << std::endl; \
+            std::abort();                                                \
+        }                                                                \
+    } while (0)
 
 namespace evcpp {
 

@@ -115,6 +115,58 @@ int main() {
             }));
     }));
 
+    // case 10
+    evcpp::Promise<void> p10(loop);
+    std::vector<evcpp::Promise<void>> p10s(3);
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        p10 = MkAllPromise(p10s, loop);
+        p10.Then(evcpp::MakeCallback([](evcpp::Result<void>&& r) mutable {
+            std::cout << "case 10 done" << std::endl;
+        }));
+    }));
+
+    // case 11
+    evcpp::Promise<int, std::vector<std::error_code>> p11(loop);
+    std::vector<evcpp::Promise<int>> p11s(3);
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        p11 = MkAnyPromise(p11s, loop);
+        p11.Then(evcpp::MakeCallback(
+            [](evcpp::Result<int, std::vector<std::error_code>>&& r) mutable {
+                std::cout << "case 11 done: " << r.Value() << std::endl;
+            }));
+    }));
+
+    // case 12
+    evcpp::Promise<void, std::vector<std::error_code>> p12(loop);
+    std::vector<evcpp::Promise<void>> p12s(3);
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        p12 = MkAnyPromise(p12s, loop);
+        p12.Then(evcpp::MakeCallback(
+            [](evcpp::Result<void, std::vector<std::error_code>>&& r) mutable {
+                std::cout << "case 12 done" << std::endl;
+            }));
+    }));
+
+    // case 13
+    evcpp::Promise<int> p13(loop);
+    std::vector<evcpp::Promise<int>> p13s(3);
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        p13 = MkRacePromise(p13s, loop);
+        p13.Then(evcpp::MakeCallback([](evcpp::Result<int>&& r) mutable {
+            std::cout << "case 13 done: " << r.Value() << std::endl;
+        }));
+    }));
+
+    // case 14
+    evcpp::Promise<void> p14(loop);
+    std::vector<evcpp::Promise<void>> p14s(3);
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        p14 = MkRacePromise(p12s, loop);
+        p14.Then(evcpp::MakeCallback([](evcpp::Result<void>&& r) mutable {
+            std::cout << "case 14 done" << std::endl;
+        }));
+    }));
+
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // resolve case 1
@@ -172,6 +224,46 @@ int main() {
         p9s[0].GetResolver().Resolve(1);
         p9s[1].GetResolver().Resolve(2);
         p9s[2].GetResolver().Resolve(3);
+    }));
+
+    // resolve case 10
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        std::cout << "resolve case 10 promise" << std::endl;
+        p10s[0].GetResolver().Resolve();
+        p10s[1].GetResolver().Resolve();
+        p10s[2].GetResolver().Resolve();
+    }));
+
+    // resolve case 11
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        std::cout << "resolve case 11 promise" << std::endl;
+        p11s[0].GetResolver().Reject(
+            std::make_error_code(std::errc::invalid_argument));
+        p11s[1].GetResolver().Reject(
+            std::make_error_code(std::errc::invalid_argument));
+        p11s[2].GetResolver().Resolve(111);
+    }));
+
+    // resolve case 12
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        std::cout << "resolve case 12 promise" << std::endl;
+        p12s[0].GetResolver().Reject(
+            std::make_error_code(std::errc::invalid_argument));
+        p12s[1].GetResolver().Reject(
+            std::make_error_code(std::errc::invalid_argument));
+        p12s[2].GetResolver().Resolve();
+    }));
+
+    // resolve case 13
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        std::cout << "resolve case 13 promise" << std::endl;
+        p13s[0].GetResolver().Resolve(222);
+    }));
+
+    // resolve case 14
+    loop->Dispatch(evcpp::MakeCallback([&]() mutable {
+        std::cout << "resolve case 14 promise" << std::endl;
+        p14s[0].GetResolver().Resolve();
     }));
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
