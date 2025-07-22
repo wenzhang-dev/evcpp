@@ -1,15 +1,3 @@
-# evcpp
-The evcpp is an easy-to-use, lightweight, coroutine-based asynchronous framework.
-
-It has an internal event loop based on the libev implementation. All asynchronous operations are done in this event loop, such as timer event, io event and so on. The evcpp also encapsulates Promises specifically for asynchronous operations. Asynchronous tasks can be easily orchestrated using Promises, such as all, any, race. In addition, to simplify asynchronous programming, the evcpp also supports cxx20 coroutine and is highly integrated with promise for more flexible control of synchronous and asynchronous programming.
-
-The Promise can encapsulate any asynchronous operation and make it coroutine.
-
-## Examples
-
-Here is a cxx20 coroutine-based echo tcp server service.
-
-```c++
 #include <evcpp.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -137,4 +125,3 @@ int main() {
 
     return 0;
 }
-```

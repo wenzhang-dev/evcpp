@@ -141,6 +141,7 @@ class IOEventLibevImpl : public DoubleLinkObject<IOEventLibevImpl>,
         InvokeVariantCallback(impl->cb_);
         impl->fired_ = true;
 
+        ev_io_stop(EV_A_ w);
         impl->Unlink();
     }
 
