@@ -1,8 +1,8 @@
 ENABLE_ASAN ?= 0
 
-CXX = g++
+CXX ?= g++
 
-CXXFLAGS = -std=c++20 -Wall -O2 -g
+CXXFLAGS = -std=c++20 -Wall -g
 CXXFLAGS += -fno-strict-aliasing # fix libev warnings
 CXXFLAGS += -I .
 CXXFLAGS += -I third-party/libev/build/include
@@ -10,6 +10,16 @@ CXXFLAGS += -I third-party/libev/build/include
 LDFLAGS = -lpthread
 LDFLAGS += -L third-party/libev/build/lib
 LDFLAGS += -Wl,-Bstatic -lev -Wl,-Bdynamic
+
+OPTIMIZATION = -O2
+
+ifeq ($(ENABLE_ASAN), 1)
+    CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer
+    LDFLAGS  += -fsanitize=address
+    OPTIMIZATION = -O0
+endif
+
+CXXFLAGS += $(OPTIMIZATION)
 
 ifeq ($(ENABLE_ASAN), 1)
     CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer
